@@ -1,0 +1,9 @@
+<resources>
+    <color name="panel_bg">#1A2332</color>
+    <color name="panel_bg_light">#26344A</color>
+    <color name="accent_blue">#3D7BFF</color>
+    <color name="accent_green">#34C77B</color>
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#9AAAC0</color>
+    <color name="bubble_bg">#2C3E5C</color>
+</resources>

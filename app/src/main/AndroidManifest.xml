@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Required to draw the floating panel/bubble over other apps -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <!-- Required to keep the overlay alive as a foreground service -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+
+    <!-- Required to change screen brightness from the panel slider -->
+    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
+
+    <!-- Required for the "Hide notifications" / Do Not Disturb tool -->
+    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
+
+    <!-- Required to auto-start the overlay after a reboot, if the user opts in -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- Required to prompt the user to exempt this app from battery optimization,
+         so Android is less likely to silently kill the overlay service -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- Lets us list other launchable apps (including system apps like
+         Settings/Camera/Phone) to build the "Customize Apps" picker, without
+         needing the restricted QUERY_ALL_PACKAGES permission. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
+    <application
+        android:allowBackup="true"
+        android:icon="@drawable/ic_toolbar"
+        android:roundIcon="@drawable/ic_toolbar"
+        android:label="@string/app_name"
+        android:theme="@style/Theme.FloatingToolbar"
+        android:supportsRtl="true">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.FloatingToolbar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Transparent activity used only to request screen-capture consent -->
+        <activity
+            android:name=".ScreenCaptureActivity"
+            android:theme="@style/Theme.Transparent"
+            android:exported="false" />
+
+        <!-- Lets the user pick which installed/system apps appear in the panel -->
+        <activity
+            android:name=".AppPickerActivity"
+            android:exported="false"
+            android:theme="@style/Theme.FloatingToolbar" />
+
+        <!-- The floating bubble / panel itself -->
+        <service
+            android:name=".FloatingToolbarService"
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="floating_toolbar_overlay" />
+        </service>
+
+        <!-- Records the screen once the user grants MediaProjection consent -->
+        <service
+            android:name=".ScreenRecordService"
+            android:foregroundServiceType="mediaProjection"
+            android:exported="false" />
+
+        <!-- Optionally restarts the overlay after a reboot, if the user enabled it -->
+        <receiver
+            android:name=".BootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+    </application>
+</manifest>

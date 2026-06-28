@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:background="@drawable/bg_indicator_pill"
+    android:paddingStart="10dp"
+    android:paddingEnd="6dp"
+    android:paddingTop="6dp"
+    android:paddingBottom="6dp">
+
+    <View
+        android:layout_width="10dp"
+        android:layout_height="10dp"
+        android:layout_marginEnd="8dp"
+        android:background="@drawable/bg_recording_dot" />
+
+    <TextView
+        android:id="@+id/recordingTimer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:text="00:00"
+        android:textColor="@color/text_primary"
+        android:textSize="12sp" />
+
+    <ImageView
+        android:id="@+id/btnStopRecording"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
+        android:padding="3dp"
+        android:src="@drawable/ic_stop"
+        android:contentDescription="Stop recording" />
+
+</LinearLayout>

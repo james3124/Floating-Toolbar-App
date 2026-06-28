@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/panelContainer"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:id="@+id/panelRoot"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="@drawable/bg_panel_rounded">
+
+        <!-- Header / drag handle -->
+        <LinearLayout
+            android:id="@+id/panelHeader"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="12dp"
+            android:paddingEnd="4dp"
+            android:background="@drawable/bg_panel_header">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/app_name"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold" />
+
+            <ImageView
+                android:id="@+id/btnMinimize"
+                style="@style/WindowControlButton"
+                android:padding="6dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_minimize"
+                android:contentDescription="Minimize" />
+
+            <ImageView
+                android:id="@+id/btnFullscreen"
+                style="@style/WindowControlButton"
+                android:padding="6dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_fullscreen"
+                android:contentDescription="Toggle fullscreen" />
+
+            <ImageView
+                android:id="@+id/btnClose"
+                style="@style/WindowControlButton"
+                android:padding="6dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_close"
+                android:contentDescription="Close" />
+        </LinearLayout>
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <!-- Live stats row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="12dp"
+                    android:gravity="center">
+
+                    <LinearLayout style="@style/StatBlock">
+                        <TextView
+                            android:id="@+id/ramValue"
+                            style="@style/StatValue"
+                            android:text="0%" />
+                        <TextView style="@style/StatLabel" android:text="RAM" />
+                    </LinearLayout>
+
+                    <LinearLayout style="@style/StatBlock">
+                        <TextView
+                            android:id="@+id/cpuValue"
+                            style="@style/StatValue"
+                            android:text="N/A" />
+                        <TextView style="@style/StatLabel" android:text="CPU" />
+                    </LinearLayout>
+
+                    <LinearLayout style="@style/StatBlock">
+                        <TextView
+                            android:id="@+id/batteryValue"
+                            style="@style/StatValue"
+                            android:text="0%" />
+                        <TextView
+                            android:id="@+id/tempValue"
+                            style="@style/StatLabel"
+                            android:text="0°C" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Quick sliders -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp">
+
+                    <TextView style="@style/SliderLabel" android:text="Volume" />
+                    <SeekBar
+                        android:id="@+id/volumeSeek"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:max="100" />
+
+                    <TextView style="@style/SliderLabel" android:text="Brightness" />
+                    <SeekBar
+                        android:id="@+id/brightnessSeek"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:max="100" />
+                </LinearLayout>
+
+                <!-- Tools grid, populated programmatically in FloatingToolbarService -->
+                <GridLayout
+                    android:id="@+id/toolsGrid"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:columnCount="3"
+                    android:padding="8dp" />
+
+                <!-- bottom padding so the last grid row clears the resize handle -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="16dp" />
+
+            </LinearLayout>
+        </ScrollView>
+
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/resizeHandle"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:layout_gravity="bottom|end"
+        android:padding="6dp"
+        android:src="@drawable/ic_resize_handle"
+        android:contentDescription="Resize panel" />
+
+</FrameLayout>
