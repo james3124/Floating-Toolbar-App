@@ -77,6 +77,7 @@ class FloatingToolbarService : Service() {
 
     private val statsHandler = Handler(Looper.getMainLooper())
     private lateinit var statsRunnable: Runnable
+    private val cpuExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
 
     private val fadeHandler = Handler(Looper.getMainLooper())
     private val fadeRunnable = Runnable { bubbleView?.alpha = BUBBLE_IDLE_ALPHA }
@@ -96,8 +97,17 @@ class FloatingToolbarService : Service() {
         savedX = x
         savedY = y
 
-        startForegroundNotification()
-        showPanel()
+        val foregroundOk = runCatching { startForegroundNotification() }.isSuccess
+        if (!foregroundOk) {
+            Toast.makeText(this, "Couldn't start the floating toolbar service", Toast.LENGTH_LONG).show()
+            stopSelf()
+            return
+        }
+
+        if (!showPanel()) {
+            // showPanel() already toasts the reason and calls stopSelf().
+            return
+        }
         startStatsUpdates()
 
         val filter = IntentFilter(ACTION_APPS_UPDATED)
@@ -117,6 +127,7 @@ class FloatingToolbarService : Service() {
         isRunning = false
         statsHandler.removeCallbacks(statsRunnable)
         fadeHandler.removeCallbacks(fadeRunnable)
+        cpuExecutor.shutdownNow()
         runCatching { unregisterReceiver(appsUpdatedReceiver) }
         if (isFlashlightOn) turnOffFlashlight()
         removeBubble()
@@ -149,13 +160,12 @@ class FloatingToolbarService : Service() {
 
     // ---------- Bubble (collapsed) ----------
 
-    private fun showBubble() {
+    private fun showBubble(): Boolean {
         removePanel()
-        if (bubbleView != null) return
+        if (bubbleView != null) return true
 
         val inflated = LayoutInflater.from(this).inflate(R.layout.floating_bubble, null)
-        bubbleView = inflated
-        bubbleParams = WindowManager.LayoutParams(
+        val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             overlayType(),
@@ -169,14 +179,32 @@ class FloatingToolbarService : Service() {
 
         attachDragAndTap(
             dragSource = inflated,
-            params = bubbleParams!!,
+            params = params,
             movedView = inflated,
             onTap = { showPanel() },
             snapToEdge = true,
             onDown = { cancelBubbleFade() }
         )
-        windowManager.addView(inflated, bubbleParams)
+
+        val result = runCatching { windowManager.addView(inflated, params) }
+        if (result.isFailure) {
+            // Most commonly: overlay permission was revoked after the service
+            // started, or this device/ROM blocks the overlay window type we
+            // requested. Fail safely instead of letting the exception crash
+            // the whole service.
+            Toast.makeText(
+                this,
+                "Couldn't show the floating bubble - check overlay permission",
+                Toast.LENGTH_LONG
+            ).show()
+            stopSelf()
+            return false
+        }
+
+        bubbleView = inflated
+        bubbleParams = params
         scheduleBubbleFade()
+        return true
     }
 
     private fun removeBubble() {
@@ -197,12 +225,11 @@ class FloatingToolbarService : Service() {
 
     // ---------- Panel (normal / fullscreen, resizable) ----------
 
-    private fun showPanel() {
+    private fun showPanel(): Boolean {
         removeBubble()
-        if (panelView != null) return
+        if (panelView != null) return true
 
         val inflated = LayoutInflater.from(this).inflate(R.layout.floating_panel, null)
-        panelView = inflated
 
         val (savedWidth, savedHeight) = PrefsHelper.getPanelSize(
             this, dp(DEFAULT_PANEL_WIDTH_DP), dp(DEFAULT_PANEL_HEIGHT_DP)
@@ -210,7 +237,7 @@ class FloatingToolbarService : Service() {
         val width = if (isFullscreen) WindowManager.LayoutParams.MATCH_PARENT else savedWidth
         val height = if (isFullscreen) WindowManager.LayoutParams.MATCH_PARENT else savedHeight
 
-        panelParams = WindowManager.LayoutParams(
+        val params = WindowManager.LayoutParams(
             width, height,
             overlayType(),
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
@@ -225,9 +252,22 @@ class FloatingToolbarService : Service() {
         attachResizeHandle(inflated)
 
         val header = inflated.findViewById<View>(R.id.panelHeader)
-        attachDragAndTap(dragSource = header, params = panelParams!!, movedView = inflated, onTap = null)
+        attachDragAndTap(dragSource = header, params = params, movedView = inflated, onTap = null)
 
-        windowManager.addView(inflated, panelParams)
+        val result = runCatching { windowManager.addView(inflated, params) }
+        if (result.isFailure) {
+            Toast.makeText(
+                this,
+                "Couldn't show the floating panel - check overlay permission",
+                Toast.LENGTH_LONG
+            ).show()
+            stopSelf()
+            return false
+        }
+
+        panelView = inflated
+        panelParams = params
+        return true
     }
 
     private fun removePanel() {
@@ -604,12 +644,21 @@ class FloatingToolbarService : Service() {
 
     private fun refreshStats(root: View) {
         root.findViewById<TextView>(R.id.ramValue)?.text = "${SystemStatsHelper.getRamUsagePercent(this)}%"
-        root.findViewById<TextView>(R.id.cpuValue)?.text =
-            SystemStatsHelper.getCpuUsagePercent()?.let { "$it%" } ?: "N/A"
         val batteryPercent = SystemStatsHelper.getBatteryPercent(this)
         root.findViewById<TextView>(R.id.batteryValue)?.text =
             if (batteryPercent >= 0) "$batteryPercent%" else "N/A"
         root.findViewById<TextView>(R.id.tempValue)?.text =
             "${SystemStatsHelper.getBatteryTemperature(this)}°C"
+
+        // getCpuUsagePercent() takes ~360ms (it samples /proc/stat twice with a
+        // sleep in between), so it must never run on the main thread - doing so
+        // every 2 seconds would repeatedly block the UI and could make the
+        // overlay appear frozen or unresponsive.
+        cpuExecutor.execute {
+            val cpu = SystemStatsHelper.getCpuUsagePercent()
+            statsHandler.post {
+                panelView?.findViewById<TextView>(R.id.cpuValue)?.text = cpu?.let { "$it%" } ?: "N/A"
+            }
+        }
     }
 }
